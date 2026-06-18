@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Economic Development Coefficient — City of Greensboro</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #f7f7f5;
+    color: #1a1a18;
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+    padding: 2rem 1.5rem;
+  }
+  .container { max-width: 900px; margin: 0 auto; }
+  .header { margin-bottom: 2rem; border-bottom: 1px solid #e0ded6; padding-bottom: 1.25rem; }
+  .header-top { display: flex; justify-content: space-between; align-items: flex-start; }
+  .header h1 { font-size: 20px; font-weight: 600; color: #1a1a18; }
+  .header p { font-size: 13px; color: #6b6b67; margin-top: 4px; }
+  .badge-city { font-size: 11px; background: #e8f0fb; color: #185FA5; padding: 3px 10px; border-radius: 20px; font-weight: 500; white-space: nowrap; }
+  .section-label { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #6b6b67; margin-bottom: 10px; }
+  .formula-box { background: #fff; border: 1px solid #e0ded6; border-radius: 10px; padding: 1rem 1.25rem; margin-bottom: 1.75rem; }
+  .formula { font-size: 13px; color: #3a3a38; line-height: 1.8; }
+  .formula strong { color: #1a1a18; }
+  .formula-vars { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; margin-top: 10px; }
+  .formula-var { font-size: 12px; color: #6b6b67; padding: 5px 8px; background: #f7f7f5; border-radius: 6px; }
+  .formula-var span { color: #1a1a18; font-weight: 500; }
+  .weights-panel { background: #fff; border: 1px solid #e0ded6; border-radius: 10px; padding: 1.1rem 1.25rem; margin-bottom: 1.75rem; }
+  .weight-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .weight-row:last-child { margin-bottom: 0; }
+  .weight-label { font-size: 13px; color: #3a3a38; min-width: 170px; }
+  .weight-row input[type=range] { flex: 1; accent-color: #185FA5; cursor: pointer; }
+  .weight-val { font-size: 13px; font-weight: 600; min-width: 36px; text-align: right; color: #1a1a18; }
+  .weight-sum-row { display: flex; justify-content: flex-end; margin-top: 10px; padding-top: 10px; border-top: 1px solid #e0ded6; }
+  .weight-sum-label { font-size: 12px; color: #6b6b67; margin-right: 8px; }
+  .weight-sum-val { font-size: 12px; font-weight: 600; }
+  .deal-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 1.75rem; }
+  .deal-card { background: #fff; border: 1px solid #e0ded6; border-radius: 10px; padding: 1.1rem; }
+  .deal-name { font-size: 14px; font-weight: 600; }
+  .deal-type { font-size: 11px; color: #6b6b67; margin-top: 2px; margin-bottom: 6px; }
+  .deal-score { font-size: 32px; font-weight: 700; margin: 4px 0; }
+  .pass-badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 9px; border-radius: 20px; margin-bottom: 10px; }
+  .pass { background: #eaf3de; color: #3B6D11; }
+  .borderline { background: #faeeda; color: #854F0B; }
+  .fail { background: #fcebeb; color: #A32D2D; }
+  .deal-stats { border-top: 1px solid #f0ede6; padding-top: 8px; }
+  .stat-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 12px; }
+  .stat-label { color: #6b6b67; }
+  .stat-val { font-weight: 500; color: #1a1a18; }
+  .leverage-strong { color: #3B6D11; }
+  .leverage-mid { color: #854F0B; }
+  .leverage-weak { color: #A32D2D; }
+  .bars-panel { background: #fff; border: 1px solid #e0ded6; border-radius: 10px; padding: 1.1rem 1.25rem; margin-bottom: 1.75rem; }
+  .bar-group { margin-bottom: 14px; }
+  .bar-group:last-child { margin-bottom: 0; }
+  .bar-meta { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 5px; }
+  .bar-track { background: #f0ede6; border-radius: 4px; height: 12px; position: relative; overflow: visible; }
+  .bar-fill { height: 100%; border-radius: 4px; transition: width 0.35s ease; }
+  .threshold-marker { position: absolute; top: -4px; bottom: -4px; width: 2px; background: #aaa; border-radius: 2px; }
+  .threshold-marker::after { content: attr(data-label); position: absolute; top: -18px; left: 50%; transform: translateX(-50%); font-size: 10px; color: #6b6b67; white-space: nowrap; }
+  .chart-panel { background: #fff; border: 1px solid #e0ded6; border-radius: 10px; padding: 1.1rem 1.25rem; margin-bottom: 1.75rem; }
+  .chart-wrap { position: relative; height: 220px; }
+  .threshold-panel { background: #fff; border: 1px solid #e0ded6; border-radius: 10px; padding: 1rem 1.25rem; margin-bottom: 1.75rem; }
+  .threshold-inner { display: flex; align-items: center; gap: 14px; }
+  .threshold-inner label { font-size: 13px; color: #3a3a38; min-width: 130px; }
+  .threshold-inner input[type=range] { flex: 1; accent-color: #555; }
+  .threshold-note { font-size: 12px; color: #6b6b67; margin-top: 8px; }
+  .next-steps { background: #fff; border: 1px solid #e0ded6; border-radius: 10px; padding: 1rem 1.25rem; margin-bottom: 1.75rem; }
+  .next-steps p { font-size: 13px; color: #3a3a38; line-height: 1.7; }
+  .footer { font-size: 11px; color: #9a9a96; border-top: 1px solid #e0ded6; padding-top: 1rem; margin-top: 0.5rem; line-height: 1.7; }
+  @media (max-width: 640px) {
+    .deal-grid { grid-template-columns: 1fr; }
+    .header-top { flex-direction: column; gap: 8px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div class="header-top">
+      <div>
+        <h1>Economic Development Coefficient (EDC)</h1>
+        <p>Prospective deal scoring model — City of Greensboro economic development evaluation</p>
+      </div>
+      <span class="badge-city">Greensboro, NC</span>
+    </div>
+  </div>
+
+  <div class="section-label">Model formula</div>
+  <div class="formula-box">
+    <div class="formula">
+      <strong>EDC</strong> = w<sub>1</sub>(Wage Quality) + w<sub>2</sub>(Job Durability) + w<sub>3</sub>(Public $ Efficiency) + w<sub>4</sub>(Private Leverage)
+    </div>
+    <div class="formula-vars">
+      <div class="formula-var"><span>Wage quality</span> — projected median wage / city median wage (~$48K)</div>
+      <div class="formula-var"><span>Job durability</span> — projected job years / 10-yr benchmark</div>
+      <div class="formula-var"><span>Public $ efficiency</span> — $100K benchmark / public cost per job</div>
+      <div class="formula-var"><span>Private leverage</span> — private investment / public investment (10:1 benchmark)</div>
+    </div>
+  </div>
+
+  <div class="section-label">Adjust weights</div>
+  <div class="weights-panel">
+    <div class="weight-row">
+      <span class="weight-label">Wage quality</span>
+      <input type="range" id="w1" min="0" max="1" step="0.05" value="0.30">
+      <span class="weight-val" id="w1v">0.30</span>
+    </div>
+    <div class="weight-row">
+      <span class="weight-label">Job durability</span>
+      <input type="range" id="w2" min="0" max="1" step="0.05" value="0.25">
+      <span class="weight-val" id="w2v">0.25</span>
+    </div>
+    <div class="weight-row">
+      <span class="weight-label">Public $ efficiency</span>
+      <input type="range" id="w3" min="0" max="1" step="0.05" value="0.25">
+      <span class="weight-val" id="w3v">0.25</span>
+    </div>
+    <div class="weight-row">
+      <span class="weight-label">Private leverage ratio</span>
+      <input type="range" id="w4" min="0" max="1" step="0.05" value="0.20">
+      <span class="weight-val" id="w4v">0.20</span>
+    </div>
+    <div class="weight-sum-row">
+      <span class="weight-sum-label">Weights sum:</span>
+      <span class="weight-sum-val" id="wsum">1.00</span>
+    </div>
+  </div>
+
+  <div class="section-label">Deal scores</div>
+  <div class="deal-grid" id="deal-grid"></div>
+
+  <div class="bars-panel" id="bar-section"></div>
+
+  <div class="chart-panel">
+    <div class="section-label" style="margin-bottom:12px;">Score comparison</div>
+    <div class="chart-wrap">
+      <canvas id="edcChart" role="img" aria-label="Bar chart comparing EDC scores for JetZero, Toyota Battery, and HondaJet 2600"></canvas>
+    </div>
+  </div>
+
+  <div class="section-label">Approval threshold</div>
+  <div class="threshold-panel">
+    <div class="threshold-inner">
+      <label>Minimum EDC to approve</label>
+      <input type="range" id="thresh" min="0" max="1" step="0.01" value="0.50">
+      <span class="weight-val" id="threshv">0.50</span>
+    </div>
+    <p class="threshold-note">Drag to calibrate. A threshold above 0.50 flags higher-risk deals for additional scrutiny or stronger clawback provisions.</p>
+  </div>
+
+  <div class="section-label">Next steps — phase 2</div>
+  <div class="next-steps">
+    <p><strong>Tax return ratio</strong> is the most rigorous long-run performance metric but requires realized outcome data to measure honestly. It belongs in a retrospective evaluation layer — comparing projected EDC inputs against actual economic outcomes after a deal has run its cycle. Over time, tracking prospective EDC scores against realized tax revenue and job creation builds a calibration discount factor by deal type, turning this model into a living institutional tool rather than a static scorecard.</p>
+  </div>
+
+  <div class="footer">
+    All figures from publicly reported deal announcements. Wage quality defined as projected median wage / city median wage (~$48K). * Current deal wage figures are reported average annual wages from NC Commerce EIC presentations — median wage by job category was not publicly disclosed. The model flags this as a known limitation; future deal submissions should require projected median wage by job category for consistent EDC comparison. Private leverage benchmarked at 10:1 industry standard. Toyota wage and incentive totals estimated from available reporting. Model prepared for exploratory discussion — not for official publication.
+  </div>
+
+</div>
+
+<script>
+const CITY_MEDIAN = 48000;
+const DUR_BENCH = 10;
+const LEV_BENCH = 10;
+
+const deals = [
+  { name: "JetZero", type: "Advanced manufacturing / startup", color: "#185FA5", jobs: 14500, wage: 89340, yrs: 10, pub: 1589.564, priv: 4700 },
+  { name: "Toyota Battery", type: "EV battery manufacturing", color: "#0F6E56", jobs: 5000, wage: 65000, yrs: 15, pub: 905, priv: 13900 },
+  { name: "HondaJet 2600", type: "Aerospace / production facility", color: "#993C1D", jobs: 280, wage: 88761, yrs: 12, pub: 5.045, priv: 55.7 }
+];
+
+function comps(d) {
+  const wage = Math.min(d.wage / CITY_MEDIAN, 3);
+  const dur = Math.min(d.yrs / DUR_BENCH, 2);
+  const ppj = (d.pub * 1e6) / d.jobs;
+  const pubEff = Math.min(100000 / ppj, 3);
+  const lev = d.priv / d.pub;
+  const levScore = Math.min(lev / LEV_BENCH, 3);
+  return { wage, dur, pubEff, levScore, lev };
+}
+
+function edc(d, w1, w2, w3, w4) {
+  const c = comps(d);
+  const raw = w1*c.wage + w2*c.dur + w3*c.pubEff + w4*c.levScore;
+  return Math.min(raw / (3*(w1+w2+w3+w4)), 1);
+}
+
+function passBadge(score, thresh) {
+  if (score >= thresh) return ['pass', 'Pass'];
+  if (score >= thresh * 0.85) return ['borderline', 'Borderline'];
+  return ['fail', 'Below threshold'];
+}
+
+function levClass(r) {
+  if (r >= 10) return 'leverage-strong';
+  if (r >= 5) return 'leverage-mid';
+  return 'leverage-weak';
+}
+
+let chart;
+
+function render() {
+  const w1 = +document.getElementById('w1').value;
+  const w2 = +document.getElementById('w2').value;
+  const w3 = +document.getElementById('w3').value;
+  const w4 = +document.getElementById('w4').value;
+  const thresh = +document.getElementById('thresh').value;
+
+  ['w1','w2','w3','w4'].forEach(id => {
+    document.getElementById(id+'v').textContent = (+document.getElementById(id).value).toFixed(2);
+  });
+  document.getElementById('threshv').textContent = thresh.toFixed(2);
+
+  const total = +(w1+w2+w3+w4).toFixed(2);
+  const wsumEl = document.getElementById('wsum');
+  wsumEl.textContent = total.toFixed(2);
+  wsumEl.style.color = Math.abs(total - 1) > 0.05 ? '#A32D2D' : '#3B6D11';
+
+  const scores = deals.map(d => edc(d, w1, w2, w3, w4));
+  const cs = deals.map(d => comps(d));
+
+  document.getElementById('deal-grid').innerHTML = deals.map((d, i) => {
+    const s = scores[i];
+    const c = cs[i];
+    const [cls, label] = passBadge(s, thresh);
+    const ppjK = Math.round((d.pub*1e6)/d.jobs/1000);
+    return `<div class="deal-card">
+      <div class="deal-name">${d.name}</div>
+      <div class="deal-type">${d.type}</div>
+      <div class="deal-score" style="color:${d.color}">${s.toFixed(3)}</div>
+      <span class="pass-badge ${cls}">${label}</span>
+      <div class="deal-stats">
+        <div class="stat-row"><span class="stat-label">Jobs projected</span><span class="stat-val">${d.jobs.toLocaleString()}</span></div>
+        <div class="stat-row"><span class="stat-label">Reported avg wage*</span><span class="stat-val">$${Math.round(d.wage/1000)}K</span></div>
+        <div class="stat-row"><span class="stat-label">Wage quality index</span><span class="stat-val">${c.wage.toFixed(2)}x</span></div>
+        <div class="stat-row"><span class="stat-label">Job durability</span><span class="stat-val">${c.dur.toFixed(2)}x</span></div>
+        <div class="stat-row"><span class="stat-label">Public cost per job</span><span class="stat-val">$${ppjK}K</span></div>
+        <div class="stat-row"><span class="stat-label">Private leverage</span><span class="stat-val ${levClass(c.lev)}">${c.lev.toFixed(1)}:1</span></div>
+        <div class="stat-row"><span class="stat-label">Total public $</span><span class="stat-val">${d.pub >= 100 ? '$'+Math.round(d.pub)+'M' : '$'+d.pub.toFixed(1)+'M'}</span></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('bar-section').innerHTML =
+    `<div class="section-label" style="margin-bottom:12px;">EDC vs threshold</div>` +
+    deals.map((d, i) => {
+      const pct = (scores[i] * 100).toFixed(1);
+      return `<div class="bar-group">
+        <div class="bar-meta">
+          <span style="font-weight:500">${d.name}</span>
+          <span style="color:${d.color};font-weight:600">${scores[i].toFixed(3)}</span>
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill" style="width:${pct}%;background:${d.color}"></div>
+          <div class="threshold-marker" style="left:${(thresh*100).toFixed(1)}%" data-label="threshold ${thresh.toFixed(2)}"></div>
+        </div>
+      </div>`;
+    }).join('');
+
+  const data = scores.map(s => parseFloat(s.toFixed(4)));
+  if (chart) {
+    chart.data.datasets[0].data = data;
+    chart.update();
+  } else {
+    chart = new Chart(document.getElementById('edcChart'), {
+      type: 'bar',
+      data: {
+        labels: deals.map(d => d.name),
+        datasets: [{ label: 'EDC Score', data, backgroundColor: deals.map(d => d.color), borderWidth: 0, borderRadius: 5 }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        scales: {
+          y: { min: 0, max: 1, grid: { color: 'rgba(0,0,0,0.06)' }, ticks: { font: { size: 11 }, callback: v => v.toFixed(2) } },
+          x: { grid: { display: false }, ticks: { font: { size: 13, weight: '500' } } }
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: ctx => ' EDC: ' + ctx.raw.toFixed(3) } }
+        }
+      }
+    });
+  }
+}
+
+['w1','w2','w3','w4','thresh'].forEach(id => {
+  document.getElementById(id).addEventListener('input', render);
+});
+render();
+</script>
+</body>
+</html>
